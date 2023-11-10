@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+      "module": "commonjs",
+      "esModuleInterop": true,
+      "target": "es6",
+      "moduleResolution": "node",
+      "sourceMap": false,
+      "outDir": "dist",
+      "allowJs": true
+    },
+    "include": [
+        "src/**/*.ts",
+        "src/**/*.js",
+        "src/app.ts"
+    ],
+    "exclude": [
+        "**/*.js.map"
+    ],
+    "lib": ["es2023"]
+}
