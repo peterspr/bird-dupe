@@ -1,7 +1,8 @@
 import axios from "axios";
+const baseURL = 'http://localhost:3000'
 
 const API = axios.create({
-    baseURL: process.env.REACT_APP_API_URL,
+    baseURL: baseURL,
 });
 
 const handleApiError = async (error: any) => {
@@ -15,11 +16,14 @@ const handleApiError = async (error: any) => {
     }
 };
 
-export const signIn = async (req: any) => {
+export const signIn = async (code: string | null) => {
     try {
-        const res = await API.post("/auth/signin", {
+        const res = await API.get("/auth/signin/redirect", {
             headers: {
                 "Content-Type": "application/json",
+            },
+            params: {
+                code: code,
             },
         });
         return { error: null, data: res.data };

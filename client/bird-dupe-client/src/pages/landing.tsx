@@ -1,37 +1,31 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux";
-import { signInAction } from "../redux/actions/auth.actions";
+// import { useEffect, useState } from "react";
+// import { Link, useNavigate } from "react-router-dom";
+// import { useDispatch, useSelector } from "react-redux";
+// import { signInAction } from "../redux/actions/auth.actions";
 import axios from "axios";
-import React from "react";
+import { useSelector } from "react-redux";
+// import React from "react";
+const baseURL = "http://localhost:3000";
 
 const Landing = () => {
-    const [loading, setLoading] = useState(false);
-    const [loadingText, setLoadingText] = useState("");
-  
-    const dispatch = useDispatch<any>();
-    const navigate = useNavigate();
+
+    const userData = useSelector((state: any) => state.auth?.userData);
+    console.log(userData);
 
     const handleSignIn = async (event: { preventDefault: () => void; }) => {
         event.preventDefault();
-        const response = await axios.get('/auth/signin');
+        const response = await axios.get(baseURL + '/auth/signin');
         const { data } = response;
         window.location.href = data.authURL;
     };
 
     const handleSignUp = async (event: { preventDefault: () => void; }) => {
         event.preventDefault();
-        const response = await axios.get('/auth/signin');
+        const response = await axios.get(baseURL + '/auth/signup');
         const { data } = response;
         window.location.href = data.authURL;
     };
   
-    const signInError = useSelector((state: any) => state.auth?.signInError);
-    const successMessage = useSelector((state: any) => state.auth?.successMessage);
-  
-    const handleClearMessage = () => {
-      // dispatch(clearMessage());
-    };
   
     return (
       <section className="bg-white">

@@ -11,8 +11,8 @@ const createStore = async () => {
     await store.dispatch(initializeAuth());
 
     return store;
-  } catch (err) {
-    throw new Error("Some error occurred");
+  } catch (err: any) {
+    throw new Error(`Some error occurred ${err.message}`);
   }
 };
 

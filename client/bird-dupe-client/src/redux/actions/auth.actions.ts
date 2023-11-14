@@ -1,11 +1,11 @@
 import * as types from "../constants/auth.constants";
-import * as api from "../api/authAPI";
 import { isValidToken } from "../../utils/auth.utils";
+const baseURL = 'http://localhost:3000';
 
 export const initializeAuth = () => async (dispatch: (arg0: any) => void) => {
     const accessToken = JSON.parse(localStorage.getItem("profile") ?? '')?.accessToken;
     const refreshToken = JSON.parse(localStorage.getItem("profile") ?? '')?.refreshToken;
-  
+
     if (accessToken && refreshToken) {
         if (isValidToken(accessToken)) {
             dispatch(setAccessToken(accessToken));
@@ -14,6 +14,27 @@ export const initializeAuth = () => async (dispatch: (arg0: any) => void) => {
         } else {
             await dispatch(refreshTokenAction(refreshToken));
         }
+    }
+};
+
+export const refreshTokenAction = (refreshToken: any) => async (dispatch: (arg0: { type: string; payload: any; }) => void) => {
+    try {
+      const response = await API.post("/users/refresh-token", {
+        refreshToken,
+      });
+      const profile = JSON.parse(localStorage.getItem("profile") ?? '');
+      const payload = response.data;
+      localStorage.setItem("profile", JSON.stringify({ ...profile, ...payload }));
+      dispatch({
+        type: "REFRESH_TOKEN_SUCCESS",
+        payload: payload,
+      });
+    } catch (error: any) {
+      localStorage.removeItem("profile");
+      dispatch({
+        type: "REFRESH_TOKEN_FAIL",
+        payload: error.response.data,
+      });
     }
   };
 
@@ -37,8 +58,9 @@ export const setInitialAuthState = (navigate: (arg0: string) => void) => async (
 
 import axios from "axios";
 import { NavigateFunction } from "react-router-dom";
+import { useSelector } from "react-redux";
 const API = axios.create({
-    baseURL: process.env.REACT_APP_API_URL,
+    baseURL: baseURL,
     headers: { "Content-Type": "application/json", },
 });
 
@@ -50,56 +72,38 @@ API.interceptors.request.use((req) => {
     return req;
 });
 
-export const refreshTokenAction = (refreshToken: any) => async (dispatch: (arg0: { type: string; payload: any; }) => void) => {
-    try {
-        const response = await API.post("/users/refresh-token", {
-            refreshToken,
-        });
-        const profile = JSON.parse(localStorage.getItem("profile") ?? '');
-        const payload = response.data;
-        localStorage.setItem("profile", JSON.stringify({ ...profile, ...payload }));
-        dispatch({
-            type: "REFRESH_TOKEN_SUCCESS",
-            payload: payload,
-        });
-    } catch (error: any) {
-        localStorage.removeItem("profile");
-        dispatch({
-            type: "REFRESH_TOKEN_FAIL",
-            payload: error.response.data,
-        });
-    }
-};
 
-export const signInAction = (req: URLSearchParams, navigate: NavigateFunction) => async (dispatch: (arg0: { type: string; payload: any; }) => void) => {
+export const authAction = (data: any, navigate: NavigateFunction) => async (dispatch: (arg0: { type: string; payload: any; }) => void) => {
     try {
-        const response = await api.signIn(req);
-        const { error, data } = response;
+        console.log(data);
+        // const response = await api.signIn(req.get('code'));
+        const error = false;
         if (error) {
-          dispatch({
-            type: types.SIGNIN_FAIL,
-            payload: error,
-          });
+            dispatch({
+                type: types.SIGNIN_FAIL,
+                payload: error,
+            });
         } else {
-          const { user, accessToken, refreshToken, accessTokenUpdatedAt } = data;
-          const profile = {
-            user,
-            accessToken,
-            refreshToken,
-            accessTokenUpdatedAt,
-          };
-          localStorage.setItem("profile", JSON.stringify(profile));
-          dispatch({
-            type: types.SIGNIN_SUCCESS,
-            payload: profile,
-          });
-          navigate("/");
+            console.log(data);
+            const { user, accessToken, } = data;
+            const profile = {
+                user,
+                accessToken,
+              };
+            localStorage.setItem("profile", JSON.stringify(profile));
+            dispatch({
+                type: types.SIGNIN_SUCCESS,
+                payload: profile,
+            });
+            const userData = useSelector((state: any) => state.auth?.userData);
+            console.log(userData);
+            navigate("/");
         }
-      } catch (error) {
+    } catch (error) {
         await dispatch({
-          type: types.SIGNIN_FAIL,
-          payload: types.ERROR_MESSAGE,
+            type: types.SIGNIN_FAIL,
+            payload: types.ERROR_MESSAGE,
         });
-        navigate("/signin");
-      }
+        navigate("/");
+    }
 };
