@@ -7,34 +7,114 @@ import clientConfig from '../config/clientConfig';
 import * as msal from "@azure/msal-node";
 const cca = new msal.ConfidentialClientApplication(clientConfig);
 
-const authCodeUrlParameters = {
-  scopes: ["profile"],
-  redirectUri: process.env.REDIRECT_URL,
-};
-var authCodeUrl;
-cca.getAuthCodeUrl(authCodeUrlParameters).then((response) => {
-  authCodeUrl = response;
-}).catch((error) => console.log(JSON.stringify(error)));
+
 
 export function signinRedirect(req, res) {
-    console.log("In signinRedirect.")
-    res.json({authURL: authCodeUrl});
+    const authCodeUrlParameters = {
+        scopes: ["profile", "offline_access", "openid"],
+        redirectUri: process.env.SIGNIN_REDIRECT_URL,
+      };
+      var authCodeUrl;
+      cca.getAuthCodeUrl(authCodeUrlParameters).then((response) => {
+        authCodeUrl = response;
+        console.log("In signinRedirect.")
+        res.json({authURL: authCodeUrl});
+      }).catch((error) => console.log(JSON.stringify(error)));
 }
 
-export function getToken(req, res, next) {
+export function signupRedirect(req, res) {
+    const authCodeUrlParameters = {
+        scopes: ["profile", "offline_access", "openid"],
+        redirectUri: process.env.SIGNUP_REDIRECT_URL,
+      };
+      var authCodeUrl;
+      cca.getAuthCodeUrl(authCodeUrlParameters).then((response) => {
+        authCodeUrl = response;
+        console.log("In signupRedirect.")
+        res.json({authURL: authCodeUrl});
+      }).catch((error) => console.log(JSON.stringify(error)));
+}
+
+export function returnSigninToken(req, res, next) {
     const authCode = req.query.code;
     const tokenRequest = {
         code: authCode,
-        redirectUri: process.env.REDIRECT_URL,
-        scopes: ["profile"],
+        redirectUri: process.env.SIGNIN_REDIRECT_URL,
+        scopes: ["profile", "offline_access", "openid"],
     };
     cca.acquireTokenByCode(tokenRequest).then((response) => {
         console.log("\nResponse: \n:", response);
-        console.log(jwt.decode(response.accessToken));
+        const tokenData = jwt.decode(response.idToken);
+        UserModel.findOne({
+            email: { $eq: tokenData.email },
+          }).then((existingUser) => {
+            if (!existingUser) {
+                return res.redirect(`/`);
+            }
+            const profileData = {
+                user: {
+                    _id: existingUser._id,
+                    name: existingUser.name,
+                    email: existingUser.email,
+                },
+                accessToken: response.accessToken,
+                // refreshToken: response.refreshToken,
+            }
+            const encodedData = encodeURIComponent(JSON.stringify(profileData));
+            res.redirect(`/token?data=${encodedData}`);
+          });
     }).catch((error) => {
         console.log(error);
     });
-    res.status(200).end();
+}
+
+export function returnSignupToken(req, res, next) {
+    const authCode = req.query.code;
+    const tokenRequest = {
+        code: authCode,
+        redirectUri: process.env.SIGNUP_REDIRECT_URL,
+        scopes: ["profile", "offline_access", "openid"],
+    };
+    cca.acquireTokenByCode(tokenRequest).then((response) => {
+
+        console.log("\nResponse: \n:", response);
+        const tokenData = jwt.decode(response.accessToken);
+
+        UserModel.findOne({
+            email: { $eq: tokenData.email },
+        }).then((existingUser) => {
+            if (existingUser) {
+                return res.redirect(`/`);
+            }
+        });
+        const newUser = new UserModel({
+            sub: tokenData.sub,
+            name: tokenData.name,
+            email: tokenData.email,
+        });
+
+        newUser.save();
+        UserModel.findOne({
+            email: { $eq: tokenData.email },
+          }).then((existingUser) => {
+            if (!existingUser) {
+                return res.redirect(`/`);
+            }
+            const profileData = {
+                user: {
+                    _id: existingUser._id,
+                    name: existingUser.name,
+                    email: existingUser.email,
+                },
+                accessToken: response.accessToken,
+                // refreshToken: response.refreshToken,
+            }
+            const encodedData = encodeURIComponent(JSON.stringify(profileData));
+            res.redirect(`/token?data=${encodedData}`);
+        });
+    }).catch((error) => {
+        console.log(error);
+    });
 }
 
 export function printRequest(req, res, next) {

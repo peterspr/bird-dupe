@@ -20,11 +20,15 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use(express.static(path.join(__dirname, '../../client/bird-dupe-client/dist')))
+
 import authRoutes from './routes/auth.routes';
 
 app.use('/auth', authRoutes);
 
-
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../../client/bird-dupe-client/dist', 'index.html'));
+});
 
 
 

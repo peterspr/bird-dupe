@@ -4,13 +4,17 @@ const router = Router();
 import passport from 'passport';
 import getUser from '../controllers/user.controller';
 
-import { signinRedirect } from '../controllers/auth.controller';
+import { signinRedirect, signupRedirect } from '../controllers/auth.controller';
 import { printRequest } from '../controllers/auth.controller';
-import { getToken } from '../controllers/auth.controller';
+import { returnSigninToken, returnSignupToken } from '../controllers/auth.controller';
 
 router.get('/signin', signinRedirect);
 
-router.get('/redirect', printRequest, getToken);
+router.get('/signup', signupRedirect);
+
+router.get('/signin/redirect', printRequest, returnSigninToken);
+
+router.get('/signup/redirect', returnSignupToken);
 
 router.get('/redirect', function(req, res) {
     console.log("Received redirect.");
