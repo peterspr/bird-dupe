@@ -18,7 +18,7 @@ cca.getAuthCodeUrl(authCodeUrlParameters).then((response) => {
 
 export function signinRedirect(req, res) {
     console.log("In signinRedirect.")
-    res.redirect(authCodeUrl);
+    res.json({authURL: authCodeUrl});
 }
 
 export function getToken(req, res, next) {
@@ -30,6 +30,7 @@ export function getToken(req, res, next) {
     };
     cca.acquireTokenByCode(tokenRequest).then((response) => {
         console.log("\nResponse: \n:", response);
+        console.log(jwt.decode(response.accessToken));
     }).catch((error) => {
         console.log(error);
     });

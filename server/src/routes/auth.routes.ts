@@ -18,11 +18,6 @@ router.get('/redirect', function(req, res) {
     res.status(200).end();
 });
 
-router.post('/redirect', function(req, res) {
-    console.log("Received redirect.");
-    console.log(req.query.code);
-    res.status(200).end();
-});
 
 //router.get('/redirect', printResponse);
 
