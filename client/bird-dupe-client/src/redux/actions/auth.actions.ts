@@ -17,26 +17,6 @@ export const initializeAuth = () => async (dispatch: (arg0: any) => void) => {
     }
 };
 
-export const refreshTokenAction = (refreshToken: any) => async (dispatch: (arg0: { type: string; payload: any; }) => void) => {
-    try {
-      const response = await API.post("/users/refresh-token", {
-        refreshToken,
-      });
-      const profile = JSON.parse(localStorage.getItem("profile") ?? '');
-      const payload = response.data;
-      localStorage.setItem("profile", JSON.stringify({ ...profile, ...payload }));
-      dispatch({
-        type: "REFRESH_TOKEN_SUCCESS",
-        payload: payload,
-      });
-    } catch (error: any) {
-      localStorage.removeItem("profile");
-      dispatch({
-        type: "REFRESH_TOKEN_FAIL",
-        payload: error.response.data,
-      });
-    }
-  };
 
 export const setAccessToken = (accessToken: any) => async (dispatch: (arg0: { type: any; payload: any; }) => void) => {
     dispatch({ type: types.SET_ACCESS_TOKEN, payload: accessToken });
@@ -72,6 +52,26 @@ API.interceptors.request.use((req) => {
     return req;
 });
 
+export const refreshTokenAction = (refreshToken: any) => async (dispatch: (arg0: { type: string; payload: any; }) => void) => {
+    try {
+        const response = await API.post("/refreshToken", {
+            refreshToken,
+        });
+        const profile = JSON.parse(localStorage.getItem("profile") ?? '');
+        const payload = response.data;
+        localStorage.setItem("profile", JSON.stringify({ ...profile, ...payload }));
+        dispatch({
+            type: "REFRESH_TOKEN_SUCCESS",
+            payload: payload,
+        });
+        } catch (error: any) {
+        localStorage.removeItem("profile");
+        dispatch({
+            type: "REFRESH_TOKEN_FAIL",
+            payload: error.response.data,
+        });
+      }
+  };
 
 export const authAction = (data: any, navigate: NavigateFunction) => async (dispatch: (arg0: { type: string; payload: any; }) => void) => {
     try {
@@ -85,10 +85,11 @@ export const authAction = (data: any, navigate: NavigateFunction) => async (disp
             });
         } else {
             console.log(data);
-            const { user, accessToken, } = data;
+            const { user, accessToken, refreshToken } = data;
             const profile = {
                 user,
                 accessToken,
+                refreshToken,
               };
             localStorage.setItem("profile", JSON.stringify(profile));
             dispatch({

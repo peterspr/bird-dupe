@@ -2,10 +2,6 @@ import mongoose, { Schema } from 'mongoose';
 
 const userSchema = new Schema(
     {
-        sub: {
-            type: String,
-            required: true,
-        },
         name: {
             type: String,
             required: true,
