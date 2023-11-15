@@ -1,16 +1,16 @@
+import jwt from "jsonwebtoken";
+
 const isValidToken = (token: string) => {
     if (!token) {
       return false;
     }
   
-    const payload = token.split(".")[1];
+    const payload: any = jwt.decode(token);
     if (!payload) {
       return false;
     }
   
-    const decodedPayload = JSON.parse(window.atob(payload));
-  
-    const expiryTime = decodedPayload.exp * 1000;
+    const expiryTime = payload.exp;
     const currentTime = Date.now();
     return expiryTime > currentTime;
   };
