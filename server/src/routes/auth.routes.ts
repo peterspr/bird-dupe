@@ -4,7 +4,7 @@ const router = Router();
 import passport from 'passport';
 import getUser from '../controllers/user.controller';
 
-import { signinRedirect, signupRedirect, silentRefresh } from '../controllers/auth.controller';
+import { refreshToken, signinRedirect, signupRedirect } from '../controllers/auth.controller';
 import { printRequest } from '../controllers/auth.controller';
 import { returnSigninToken, returnSignupToken } from '../controllers/auth.controller';
 
@@ -16,7 +16,9 @@ router.get('/signin/redirect', printRequest, returnSigninToken);
 
 router.get('/signup/redirect', returnSignupToken);
 
-router.post('/silentRefresh', silentRefresh)
+router.post('/refreshToken', refreshToken)
+
+// router.post('/silentRefresh', silentRefresh)
 
 // router.get('/redirect', function(req, res) {
 //     console.log("Received redirect.");
