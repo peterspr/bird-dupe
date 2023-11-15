@@ -3,19 +3,17 @@ import { isValidToken } from "../../utils/auth.utils";
 const baseURL = 'http://localhost:3000';
 
 export const initializeAuth = () => async (dispatch: (arg0: any) => void) => {
-    try {
-        const accessToken = JSON.parse(localStorage.getItem("profile") ?? '')?.accessToken;
+    const accessToken = JSON.parse(localStorage.getItem("profile") ?? '')?.accessToken;
+    const refreshToken = JSON.parse(localStorage.getItem("profile") ?? '')?.refreshToken;
 
-        if (accessToken) {
-            if (isValidToken(accessToken)) {
-                dispatch(setAccessToken(accessToken));
-                dispatch(setUserData(JSON.parse(localStorage.getItem("profile") ?? '').user));
-            } else {
-                await dispatch(refreshTokenAction(accessToken));
-            }
+    if (accessToken && refreshToken) {
+        if (isValidToken(accessToken)) {
+            dispatch(setAccessToken(accessToken));
+            dispatch(setRefreshToken(refreshToken));
+            dispatch(setUserData(JSON.parse(localStorage.getItem("profile") ?? '').user));
+        } else {
+            await dispatch(refreshTokenAction(refreshToken));
         }
-    } catch(error) {
-        console.log(error);
     }
 };
 
@@ -54,25 +52,25 @@ API.interceptors.request.use((req) => {
     return req;
 });
 
-export const refreshTokenAction = (accessToken: any) => async (dispatch: (arg0: { type: string; payload: any; }) => void) => {
+export const refreshTokenAction = (refreshToken: any) => async (dispatch: (arg0: { type: string; payload: any; }) => void) => {
     try {
-      const response = await API.post("/auth/silentRefresh", {
-        accessToken,
-      });
-      const profile = JSON.parse(localStorage.getItem("profile") ?? '');
-      const payload = response.data;
-      localStorage.setItem("profile", JSON.stringify({ ...profile, ...payload }));
-      dispatch({
-        type: "REFRESH_TOKEN_SUCCESS",
-        payload: payload,
-      });
-    } catch (error: any) {
-      localStorage.removeItem("profile");
-      dispatch({
-        type: "REFRESH_TOKEN_FAIL",
-        payload: error.response.data,
-      });
-    }
+        const response = await API.post("/refreshToken", {
+            refreshToken,
+        });
+        const profile = JSON.parse(localStorage.getItem("profile") ?? '');
+        const payload = response.data;
+        localStorage.setItem("profile", JSON.stringify({ ...profile, ...payload }));
+        dispatch({
+            type: "REFRESH_TOKEN_SUCCESS",
+            payload: payload,
+        });
+        } catch (error: any) {
+        localStorage.removeItem("profile");
+        dispatch({
+            type: "REFRESH_TOKEN_FAIL",
+            payload: error.response.data,
+        });
+      }
   };
 
 export const authAction = (data: any, navigate: NavigateFunction) => async (dispatch: (arg0: { type: string; payload: any; }) => void) => {
@@ -87,10 +85,11 @@ export const authAction = (data: any, navigate: NavigateFunction) => async (disp
             });
         } else {
             console.log(data);
-            const { user, accessToken, } = data;
+            const { user, accessToken, refreshToken } = data;
             const profile = {
                 user,
                 accessToken,
+                refreshToken,
               };
             localStorage.setItem("profile", JSON.stringify(profile));
             dispatch({
