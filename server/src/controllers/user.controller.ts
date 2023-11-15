@@ -5,7 +5,7 @@ const getUser = async (req, res, next) => {
     try {
         const user = await UserModel.findById(req.parmas.id);
         console.log("Issue?");
-        res.status(200).json(JSON.stringify({name: user.name, email: user.email, sub:user.sub}));
+        res.status(200).json(JSON.stringify({name: user.name, email: user.email}));
     } catch (error) {
         next(error);
     }
