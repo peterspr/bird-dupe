@@ -45,12 +45,23 @@ export function returnSigninToken(req, res, next) {
     cca.acquireTokenByCode(tokenRequest).then((response) => {
         console.log("\nResponse: \n:", response);
         const tokenData = jwt.decode(response.idToken);
+        // const accessData = jwt.decode(response.accessToken);
+        // console.log("IdData \n", tokenData);
+        // console.log("AccessData \n", accessData);
+        silentRefresh(null, null, null);
         UserModel.findOne({
             email: { $eq: tokenData.email },
           }).then((existingUser) => {
             if (!existingUser) {
                 return res.redirect(`/`);
             }
+            // const refreshToken = () => {
+            //     const tokenCache = cca.getTokenCache().serialize();
+            //     const refreshTokenObject = (JSON.parse(tokenCache)).RefreshToken
+            //     const refreshToken = refreshTokenObject[Object.keys(refreshTokenObject)[0]].secret;
+            //     return refreshToken;
+            // }
+            // console.log("\nRefresh Token: \n", refreshToken);
             const profileData = {
                 user: {
                     _id: existingUser._id,
@@ -58,7 +69,6 @@ export function returnSigninToken(req, res, next) {
                     email: existingUser.email,
                 },
                 accessToken: response.accessToken,
-                // refreshToken: response.refreshToken,
             }
             const encodedData = encodeURIComponent(JSON.stringify(profileData));
             res.redirect(`/token?data=${encodedData}`);
@@ -79,41 +89,70 @@ export function returnSignupToken(req, res, next) {
 
         console.log("\nResponse: \n:", response);
         const tokenData = jwt.decode(response.accessToken);
+        const idTokenData = jwt.decode(response.idToken);
 
+        console.log(tokenData);
+        console.log("idToken: \n", idTokenData)
         UserModel.findOne({
             email: { $eq: tokenData.email },
         }).then((existingUser) => {
             if (existingUser) {
                 return res.redirect(`/`);
+            } else {
+                const newUser = new UserModel({
+                    name: idTokenData.given_name + " " + idTokenData.family_name,
+                    email: idTokenData.email,
+                });
+        
+                newUser.save().then(() => {
+                    UserModel.findOne({
+                        email: { $eq: idTokenData.email },
+                      }).then((existingUser) => {
+                        if (!existingUser) {
+                            return res.redirect(`/`);
+                        }
+                        const profileData = {
+                            user: {
+                                _id: existingUser._id,
+                                name: existingUser.name,
+                                email: existingUser.email,
+                            },
+                            accessToken: response.accessToken,
+                        }
+                        const encodedData = encodeURIComponent(JSON.stringify(profileData));
+                        res.redirect(`/token?data=${encodedData}`);
+                    });
+                });
             }
         });
-        const newUser = new UserModel({
-            sub: tokenData.sub,
-            name: tokenData.name,
-            email: tokenData.email,
-        });
-
-        newUser.save();
-        UserModel.findOne({
-            email: { $eq: tokenData.email },
-          }).then((existingUser) => {
-            if (!existingUser) {
-                return res.redirect(`/`);
-            }
-            const profileData = {
-                user: {
-                    _id: existingUser._id,
-                    name: existingUser.name,
-                    email: existingUser.email,
-                },
-                accessToken: response.accessToken,
-                // refreshToken: response.refreshToken,
-            }
-            const encodedData = encodeURIComponent(JSON.stringify(profileData));
-            res.redirect(`/token?data=${encodedData}`);
-        });
+        
     }).catch((error) => {
         console.log(error);
+    });
+}
+
+export function silentRefresh(req, res, next) {
+    cca.getTokenCache().getAllAccounts().then((accounts) => {
+        const account = accounts.filter((account) => {
+            // Replace the condition below with your own logic
+            const idTokenData = jwt.decode(account.idToken);
+            const email = idTokenData.email;
+            const accessToken = jwt.decode(req.body.accessToken);
+            return email === accessToken.email;
+        })[0];
+        const silentRequestConfig: msal.SilentFlowRequest = {
+            account: account,
+            authority: `https://login.microsoftonline.com/${process.env.TENANT_ID}`,
+            scopes: ["profile", "offline_access", "openid"],
+        };
+        cca.acquireTokenSilent(silentRequestConfig)
+                .then((authResponse) => {
+                    res.status(200).json({accessToken: authResponse.accessToken});
+                })
+                .catch((error) => {
+                    console.log(error);
+                });
+        console.log(accounts);
     });
 }
 
@@ -122,3 +161,4 @@ export function printRequest(req, res, next) {
     console.log(res);
     next();
 }
+
